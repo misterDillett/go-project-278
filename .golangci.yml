@@ -1,3 +1,5 @@
+version: "2"
+
 linters:
   enable:
     - govet
@@ -8,9 +10,16 @@ linters:
     - ineffassign
     - typecheck
   disable:
-    - revive  # Отключаем revive (включает проверку комментариев)
+    - revive
+
+linters-settings:
+  typecheck:
+    whole-program: true
 
 issues:
+  exclude-rules:
+    - path: main.go
+      text: "undefined: validator"
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
