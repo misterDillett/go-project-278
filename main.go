@@ -242,12 +242,18 @@ func (h *LinkHandler) DeleteLink(c *gin.Context) {
 		return
 	}
 
-	err = h.queries.DeleteLink(c, int32(id))
+	_, err = h.queries.GetLink(c, int32(id))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
 			return
 		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.queries.DeleteLink(c, int32(id))
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -475,10 +481,13 @@ func main() {
     api.GET("/link_visits", linkHandler.GetLinkVisits)
     api.GET("/links/:id/visits", linkHandler.GetLinkVisitsByLinkID)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	port := os.Getenv("APP_PORT")
+    if port == "" {
+        port = os.Getenv("PORT")
+        if port == "" {
+            port = "8080"
+        }
+    }
 
 	log.Printf("Server starting on port %s", port)
 	router.Run(":" + port)
