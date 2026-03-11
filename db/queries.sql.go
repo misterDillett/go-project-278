@@ -7,7 +7,30 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const countLinkVisits = `-- name: CountLinkVisits :one
+SELECT COUNT(*) FROM link_visits
+`
+
+func (q *Queries) CountLinkVisits(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLinkVisits)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countLinkVisitsByLinkID = `-- name: CountLinkVisitsByLinkID :one
+SELECT COUNT(*) FROM link_visits WHERE link_id = $1
+`
+
+func (q *Queries) CountLinkVisitsByLinkID(ctx context.Context, linkID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countLinkVisitsByLinkID, linkID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const countLinks = `-- name: CountLinks :one
 SELECT COUNT(*) FROM links
@@ -40,6 +63,41 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		&i.OriginalUrl,
 		&i.ShortName,
 		&i.ShortUrl,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createLinkVisit = `-- name: CreateLinkVisit :one
+INSERT INTO link_visits (link_id, ip, user_agent, referer, status)
+VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, link_id, ip, user_agent, referer, status, created_at
+`
+
+type CreateLinkVisitParams struct {
+	LinkID    int32          `json:"link_id"`
+	Ip        sql.NullString `json:"ip"`
+	UserAgent sql.NullString `json:"user_agent"`
+	Referer   sql.NullString `json:"referer"`
+	Status    int32          `json:"status"`
+}
+
+func (q *Queries) CreateLinkVisit(ctx context.Context, arg CreateLinkVisitParams) (LinkVisit, error) {
+	row := q.db.QueryRowContext(ctx, createLinkVisit,
+		arg.LinkID,
+		arg.Ip,
+		arg.UserAgent,
+		arg.Referer,
+		arg.Status,
+	)
+	var i LinkVisit
+	err := row.Scan(
+		&i.ID,
+		&i.LinkID,
+		&i.Ip,
+		&i.UserAgent,
+		&i.Referer,
+		&i.Status,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -90,6 +148,94 @@ func (q *Queries) GetLinkByShortName(ctx context.Context, shortName string) (Lin
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getLinkVisits = `-- name: GetLinkVisits :many
+SELECT id, link_id, ip, user_agent, referer, status, created_at
+FROM link_visits
+ORDER BY created_at DESC
+    LIMIT $1 OFFSET $2
+`
+
+type GetLinkVisitsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetLinkVisits(ctx context.Context, arg GetLinkVisitsParams) ([]LinkVisit, error) {
+	rows, err := q.db.QueryContext(ctx, getLinkVisits, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LinkVisit{}
+	for rows.Next() {
+		var i LinkVisit
+		if err := rows.Scan(
+			&i.ID,
+			&i.LinkID,
+			&i.Ip,
+			&i.UserAgent,
+			&i.Referer,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLinkVisitsByLinkID = `-- name: GetLinkVisitsByLinkID :many
+SELECT id, link_id, ip, user_agent, referer, status, created_at
+FROM link_visits
+WHERE link_id = $1
+ORDER BY created_at DESC
+    LIMIT $2 OFFSET $3
+`
+
+type GetLinkVisitsByLinkIDParams struct {
+	LinkID int32 `json:"link_id"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetLinkVisitsByLinkID(ctx context.Context, arg GetLinkVisitsByLinkIDParams) ([]LinkVisit, error) {
+	rows, err := q.db.QueryContext(ctx, getLinkVisitsByLinkID, arg.LinkID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LinkVisit{}
+	for rows.Next() {
+		var i LinkVisit
+		if err := rows.Scan(
+			&i.ID,
+			&i.LinkID,
+			&i.Ip,
+			&i.UserAgent,
+			&i.Referer,
+			&i.Status,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listLinks = `-- name: ListLinks :many
