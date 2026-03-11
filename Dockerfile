@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.npm \
 RUN mkdir -p /app/public
 RUN cp -r node_modules/@hexlet/project-url-shortener-frontend/dist/* /app/public/ || true
 
-FROM golang:1.21-alpine AS backend-builder
+FROM golang:1.25-alpine AS backend-builder
 RUN apk add --no-cache git
 WORKDIR /build/code
 
