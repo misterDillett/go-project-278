@@ -1,0 +1,25 @@
+{
+  "name": "go-project-278",
+  "version": "1.0.0",
+  "description": "URL Shortener project for Hexlet",
+  "scripts": {
+    "start": "concurrently \"npm run frontend\" \"npm run backend\"",
+    "frontend": "npx start-hexlet-url-shortener-frontend",
+    "backend": "DATABASE_URL=postgres://postgres:password@localhost:5432/appdb?sslmode=disable go run main.go",
+    "test": "go test ./..."
+  },
+  "dependencies": {
+    "@hexlet/project-url-shortener-frontend": "^1.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "url-shortener",
+    "go",
+    "gin",
+    "hexlet"
+  ],
+  "author": "",
+  "license": "ISC"
+}
