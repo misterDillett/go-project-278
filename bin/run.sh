@@ -1,4 +1,3 @@
-cat > bin/run.sh << 'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -12,6 +11,6 @@ caddy run --config /etc/caddy/Caddyfile &
 
 echo "[run.sh] Starting Go app"
 exec /app/bin/app
-EOF
+
 
 chmod +x bin/run.sh
