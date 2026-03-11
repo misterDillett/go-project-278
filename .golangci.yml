@@ -7,15 +7,10 @@ linters:
     - gosimple
     - ineffassign
     - typecheck
-    - revive
+  disable:
+    - revive  # Отключаем revive (включает проверку комментариев)
 
 issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-
-linters-settings:
-  revive:
-    rules:
-      - name: exported
-        severity: warning

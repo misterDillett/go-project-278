@@ -56,13 +56,13 @@ type CreateLinkRequest struct {
 }
 
 func generateShortName() string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	rand.Seed(time.Now().UnixNano())
-	b := make([]byte, 6)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
+    const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+    b := make([]byte, 6)
+    for i := range b {
+        b[i] = letters[rng.Intn(len(letters))]
+    }
+    return string(b)
 }
 
 func (h *LinkHandler) CreateLink(c *gin.Context) {
@@ -445,14 +445,18 @@ func FormatValidationError(err error) ValidationErrors {
 
 func main() {
 	dbConn, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
-	defer dbConn.Close()
+        if err != nil {
+            log.Fatal("Failed to connect to database:", err)
+        }
+        defer func() {
+            if err := dbConn.Close(); err != nil {
+                log.Printf("Error closing database connection: %v", err)
+            }
+        }()
 
-	if err := dbConn.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
-	}
+        if err := dbConn.Ping(); err != nil {
+            log.Fatal("Failed to ping database:", err)
+        }
 
 	log.Println("Connected to database")
 
@@ -490,5 +494,7 @@ func main() {
     }
 
 	log.Printf("Server starting on port %s", port)
-	router.Run(":" + port)
+	if err := router.Run(":" + port); err != nil {
+        log.Fatal("Failed to start server:", err)
+    }
 }
