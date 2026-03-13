@@ -17,6 +17,8 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 	"github.com/go-playground/validator/v10"
+	"github.com/gin-contrib/cors"
+	"github.com/getsentry/sentry-go"
 )
 
 type ValidationError struct {
@@ -444,6 +446,21 @@ func FormatValidationError(err error) ValidationErrors {
 }
 
 func main() {
+
+    sentryDsn := os.Getenv("SENTRY_DSN")
+        if sentryDsn != "" {
+            err := sentry.Init(sentry.ClientOptions{
+                Dsn: sentryDsn,
+                Environment: os.Getenv("GO_ENV"),
+                EnableTracing: true,
+                TracesSampleRate: 0.2,
+            })
+            if err != nil {
+                log.Printf("Sentry initialization failed: %v", err)
+            }
+            defer sentry.Flush(2 * time.Second)
+        }
+
 	dbConn, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
         if err != nil {
             log.Fatal("Failed to connect to database:", err)
@@ -461,6 +478,18 @@ func main() {
 	log.Println("Connected to database")
 
 	router := gin.Default()
+
+	config := cors.DefaultConfig()
+        config.AllowOrigins = []string{
+            "http://localhost:5173",
+            "https://go-project-278-cwrj.onrender.com",
+        }
+        config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+        config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "Range"}
+        config.ExposeHeaders = []string{"Content-Length", "Content-Range"}
+        config.AllowCredentials = true
+
+        router.Use(cors.New(config))
 
 	linkHandler := NewLinkHandler(dbConn)
 

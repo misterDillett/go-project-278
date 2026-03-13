@@ -48,9 +48,9 @@ jobs:
           go mod verify
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.54
+          version: latest
           args: --timeout=5m
           only-new-issues: false
           skip-cache: false
