@@ -477,15 +477,18 @@ func main() {
 
     router := gin.Default()
 
-    router.SetTrustedProxies([]string{
+    if err := router.SetTrustedProxies([]string{
         "127.0.0.1",
         "::1",
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
-    })
+    }); err != nil {
+        log.Printf("Warning: Failed to set trusted proxies: %v", err)
+    }
 
     config := cors.DefaultConfig()
+
     config.AllowOrigins = []string{
         "http://localhost:5173",
         "https://go-project-278-cwrj.onrender.com",
