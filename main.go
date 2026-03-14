@@ -533,12 +533,9 @@ func main() {
 
     router.GET("/r/:code", linkHandler.RedirectHandler)
 
-    port := os.Getenv("APP_PORT")
+    port := os.Getenv("PORT")
     if port == "" {
-        port = os.Getenv("PORT")
-        if port == "" {
-            port = "8080"
-        }
+        port = "8080"
     }
 
     log.Printf("Server starting on port %s", port)
