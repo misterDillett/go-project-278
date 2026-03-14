@@ -8,10 +8,17 @@ handle /assets/* {
     file_server
 }
 
-# Отдаём корень как index.html
-handle / {
-    file_server
+# Проксируем API запросы на бэкенд
+handle /api/* {
+    reverse_proxy localhost:8080
 }
 
-# Всё остальное — в приложение на 8080
-reverse_proxy localhost:8080
+# Проксируем запросы на редиректы на бэкенд
+handle /r/* {
+    reverse_proxy localhost:8080
+}
+
+# Для всего остального (главная страница, фронтенд роуты) отдаём index.html
+handle {
+    file_server
+}
