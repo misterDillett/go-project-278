@@ -202,7 +202,6 @@ func (h *LinkHandler) UpdateLink(c *gin.Context) {
         return
     }
 
-    // Валидируем данные
     if err := validate.Struct(req); err != nil {
         c.JSON(http.StatusUnprocessableEntity, FormatValidationError(err))
         return
@@ -446,54 +445,61 @@ func FormatValidationError(err error) ValidationErrors {
 }
 
 func main() {
-
     sentryDsn := os.Getenv("SENTRY_DSN")
-        if sentryDsn != "" {
-            err := sentry.Init(sentry.ClientOptions{
-                Dsn: sentryDsn,
-                Environment: os.Getenv("GO_ENV"),
-                EnableTracing: true,
-                TracesSampleRate: 0.2,
-            })
-            if err != nil {
-                log.Printf("Sentry initialization failed: %v", err)
-            }
-            defer sentry.Flush(2 * time.Second)
-        }
-
-	dbConn, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+    if sentryDsn != "" {
+        err := sentry.Init(sentry.ClientOptions{
+            Dsn:              sentryDsn,
+            Environment:      os.Getenv("GO_ENV"),
+            EnableTracing:    true,
+            TracesSampleRate: 0.2,
+        })
         if err != nil {
-            log.Fatal("Failed to connect to database:", err)
+            log.Printf("Sentry initialization failed: %v", err)
         }
-        defer func() {
-            if err := dbConn.Close(); err != nil {
-                log.Printf("Error closing database connection: %v", err)
-            }
-        }()
+        defer sentry.Flush(2 * time.Second)
+    }
 
-        if err := dbConn.Ping(); err != nil {
-            log.Fatal("Failed to ping database:", err)
+    dbConn, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+    if err != nil {
+        log.Fatal("Failed to connect to database:", err)
+    }
+    defer func() {
+        if err := dbConn.Close(); err != nil {
+            log.Printf("Error closing database connection: %v", err)
         }
+    }()
 
-	log.Println("Connected to database")
+    if err := dbConn.Ping(); err != nil {
+        log.Fatal("Failed to ping database:", err)
+    }
 
-	router := gin.Default()
+    log.Println("Connected to database")
 
-	config := cors.DefaultConfig()
-        config.AllowOrigins = []string{
-            "http://localhost:5173",
-            "https://go-project-278-cwrj.onrender.com",
-        }
-        config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-        config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "Range"}
-        config.ExposeHeaders = []string{"Content-Length", "Content-Range"}
-        config.AllowCredentials = true
+    router := gin.Default()
 
-        router.Use(cors.New(config))
+    router.SetTrustedProxies([]string{
+        "127.0.0.1",
+        "::1",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+    })
 
-	linkHandler := NewLinkHandler(dbConn)
+    config := cors.DefaultConfig()
+    config.AllowOrigins = []string{
+        "http://localhost:5173",
+        "https://go-project-278-cwrj.onrender.com",
+    }
+    config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+    config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "Range"}
+    config.ExposeHeaders = []string{"Content-Length", "Content-Range"}
+    config.AllowCredentials = true
 
-	api := router.Group("/api")
+    router.Use(cors.New(config))
+
+    linkHandler := NewLinkHandler(dbConn)
+
+    api := router.Group("/api")
     {
         links := api.Group("/links")
         {
@@ -505,16 +511,16 @@ func main() {
         }
     }
 
-	router.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
+    router.GET("/ping", func(c *gin.Context) {
+        c.String(200, "pong")
+    })
 
     router.GET("/r/:code", linkHandler.RedirectHandler)
 
     api.GET("/link_visits", linkHandler.GetLinkVisits)
     api.GET("/links/:id/visits", linkHandler.GetLinkVisitsByLinkID)
 
-	port := os.Getenv("APP_PORT")
+    port := os.Getenv("APP_PORT")
     if port == "" {
         port = os.Getenv("PORT")
         if port == "" {
@@ -522,8 +528,8 @@ func main() {
         }
     }
 
-	log.Printf("Server starting on port %s", port)
-	if err := router.Run(":" + port); err != nil {
+    log.Printf("Server starting on port %s", port)
+    if err := router.Run(":" + port); err != nil {
         log.Fatal("Failed to start server:", err)
     }
 }

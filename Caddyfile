@@ -1,24 +1,3 @@
-:80
-
-# Статика из /app/public
-root * /app/public
-
-# Отдаём /assets/* как есть
-handle /assets/* {
-    file_server
-}
-
-# Проксируем API запросы на бэкенд
-handle /api/* {
+:80 {
     reverse_proxy localhost:8080
-}
-
-# Проксируем запросы на редиректы на бэкенд
-handle /r/* {
-    reverse_proxy localhost:8080
-}
-
-# Для всего остального (главная страница, фронтенд роуты) отдаём index.html
-handle {
-    file_server
 }
