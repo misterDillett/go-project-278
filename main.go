@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"code/db"
 
 	"github.com/gin-gonic/gin"
@@ -488,7 +487,6 @@ func main() {
     }
 
     config := cors.DefaultConfig()
-
     config.AllowOrigins = []string{
         "http://localhost:5173",
         "https://go-project-278-cwrj.onrender.com",
@@ -499,6 +497,19 @@ func main() {
     config.AllowCredentials = true
 
     router.Use(cors.New(config))
+
+    router.Static("/assets", "/app/public/assets")
+
+    router.StaticFile("/", "/app/public/index.html")
+    router.StaticFile("/index.html", "/app/public/index.html")
+
+    router.NoRoute(func(c *gin.Context) {
+        if !strings.HasPrefix(c.Request.URL.Path, "/api") {
+            c.File("/app/public/index.html")
+            return
+        }
+        c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+    })
 
     linkHandler := NewLinkHandler(dbConn)
 
@@ -512,6 +523,8 @@ func main() {
             links.PUT("/:id", linkHandler.UpdateLink)
             links.DELETE("/:id", linkHandler.DeleteLink)
         }
+        api.GET("/link_visits", linkHandler.GetLinkVisits)
+        api.GET("/links/:id/visits", linkHandler.GetLinkVisitsByLinkID)
     }
 
     router.GET("/ping", func(c *gin.Context) {
@@ -519,9 +532,6 @@ func main() {
     })
 
     router.GET("/r/:code", linkHandler.RedirectHandler)
-
-    api.GET("/link_visits", linkHandler.GetLinkVisits)
-    api.GET("/links/:id/visits", linkHandler.GetLinkVisitsByLinkID)
 
     port := os.Getenv("APP_PORT")
     if port == "" {

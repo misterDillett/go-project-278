@@ -1,5 +1,3 @@
 :80 {
-    reverse_proxy localhost:8080 {
-        header_up Host {host}
-    }
+    reverse_proxy localhost:8080
 }
